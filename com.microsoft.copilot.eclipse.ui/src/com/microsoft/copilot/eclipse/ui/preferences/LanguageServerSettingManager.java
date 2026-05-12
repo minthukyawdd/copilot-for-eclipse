@@ -25,6 +25,7 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -41,6 +42,7 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 
 /**
  * A class to manage the proxy service for the Copilot Language Server.
@@ -51,6 +53,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   CopilotLanguageServerConnection copilotLanguageServerConnection = null;
   IPreferenceStore preferenceStore;
   IProxyData proxyData = null;
+  private IEventBroker eventBroker;
 
   /**
    * Gets the settings.
@@ -83,6 +86,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     // agent related settings
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
         .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
+    getSettings().getGithubSettings().getCopilotSettings().getAgent()
+        .setEnableSkills(PreferencesUtils.isSkillsEnabled());
 
     // Set transcript directory for CLS session persistence and restoration
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
@@ -100,7 +105,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     getSettings().getGithubSettings()
         .setGitCommitCopilotInstructions(preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_GIT_COMMIT));
 
-    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     eventBroker.subscribe(CopilotEventConstants.TOPIC_DID_CHANGE_MCP_CONTRIBUTION_POINT_POLICY, event -> {
       Boolean enabled = (Boolean) event.getProperty(IEventBroker.DATA);
       if (!enabled.booleanValue()) {
@@ -171,6 +176,11 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       case Constants.AGENT_MAX_REQUESTS:
         settings.getGithubSettings().getCopilotSettings().getAgent()
             .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
+        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
+        break;
+      case Constants.ENABLE_SKILLS:
+        settings.getGithubSettings().getCopilotSettings().getAgent()
+            .setEnableSkills(PreferencesUtils.isSkillsEnabled());
         singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       default:

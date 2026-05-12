@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSett
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings.CopilotSettings;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 
 @ExtendWith(MockitoExtension.class)
 class LanguageServerSettingManagerTests {
@@ -50,6 +51,7 @@ class LanguageServerSettingManagerTests {
     var params = new DidChangeConfigurationParams();
     var settings = new CopilotLanguageServerSettings();
     settings.getGithubSettings().getCopilotSettings().getAgent()
+        .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
     params.setSettings(settings);
 
@@ -79,6 +81,7 @@ class LanguageServerSettingManagerTests {
     var settings = new CopilotLanguageServerSettings();
     settings.getHttp().setProxy("HTTPS://localhost:8080");
     settings.getGithubSettings().getCopilotSettings().getAgent()
+        .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
     params.setSettings(settings);
 
@@ -113,6 +116,7 @@ class LanguageServerSettingManagerTests {
     DidChangeConfigurationParams params = new DidChangeConfigurationParams();
     CopilotSettings copilotSettings = new CopilotSettings();
     copilotSettings.setWorkspaceCopilotInstructions("Test instructions");
+    copilotSettings.getAgent().setEnableSkills(PreferencesUtils.isSkillsEnabled());
     CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
     settings.getGithubSettings().setCopilotSettings(copilotSettings);
     settings.getGithubSettings().getCopilotSettings().getAgent()
@@ -146,6 +150,7 @@ class LanguageServerSettingManagerTests {
     DidChangeConfigurationParams expectedParams = new DidChangeConfigurationParams();
     CopilotLanguageServerSettings expectedSettings = new CopilotLanguageServerSettings();
     expectedSettings.getGithubSettings().getCopilotSettings().getAgent()
+        .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
     expectedParams.setSettings(expectedSettings);
 
