@@ -31,7 +31,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 /**
  * Collapsible "Thinking" banner shown above an assistant turn while the model emits thinking stream.
  *
- * <p>Pure view: callers drive the visual state via {@link #showCompleted(String)} and {@link #showCancelled()}.
+ * <p>Pure view: callers drive the visual state via {@link #showCompleted()} and {@link #showCancelled()}.
  * The owning turn widget is responsible for cancellation events and title fetching.
  */
 public class ThinkingBlock extends Composite {
@@ -86,7 +86,7 @@ public class ThinkingBlock extends Composite {
 
     addDisposeListener(e -> handleDispose());
 
-    setTitleText(Messages.thinking_inProgressTitle);
+    setTitle(Messages.thinking_title);
     spinner = new SpinnerAnimator(iconLabel);
     spinner.start();
     updateChevron();
@@ -102,8 +102,8 @@ public class ThinkingBlock extends Composite {
     requestLayout();
   }
 
-  /** Update the title and finalize as completed. Block was already collapsed at seal time. */
-  public void showCompleted(String title) {
+  /** Finalize as completed: hide spinner icon and transition to COMPLETED state. */
+  public void showCompleted() {
     if (isFinalized()) {
       return;
     }
@@ -113,13 +113,21 @@ public class ThinkingBlock extends Composite {
       iconLabel.setVisible(false);
       iconLabel.requestLayout();
     }
-    setTitleText(title);
     state = State.COMPLETED;
   }
 
-  /** Swap to the cancel icon, set the cancelled title, and collapse. No-op if already finalized. */
+  /**
+   * Cancel the thinking block. If still streaming, shows the cancel icon and collapses. If already sealed (thinking
+   * content finished, title fetch in flight), simply finalizes as completed since thinking itself was not interrupted.
+   * No-op if already finalized.
+   */
   public void showCancelled() {
     if (isFinalized()) {
+      return;
+    }
+    if (state == State.SEALED) {
+      // Thinking content already finished; just finalize without the cancel icon.
+      showCompleted();
       return;
     }
     stopSpinner();
@@ -129,7 +137,6 @@ public class ThinkingBlock extends Composite {
     if (!iconLabel.isDisposed()) {
       iconLabel.setImage(cancelledIcon);
     }
-    setTitleText(Messages.thinking_cancelledTitle);
     setExpanded(false);
     unwrapBodyFromScroller();
     state = State.CANCELLED;
@@ -137,8 +144,8 @@ public class ThinkingBlock extends Composite {
 
   /**
    * Mark the block as sealed: the owning widget has requested a title and any further thinking stream fragments must
-   * land in a new block. Stops the spinner and shows the intermediate "Thinking completed" title while the title
-   * fetch is in flight. No-op once the block has been finalized or already sealed.
+   * land in a new block. Stops the spinner and collapses the block while the owning widget handles any subsequent
+   * title updates. No-op once the block has been finalized or already sealed.
    */
   public void markSealed() {
     if (state != State.STREAMING) {
@@ -146,7 +153,6 @@ public class ThinkingBlock extends Composite {
     }
     state = State.SEALED;
     stopSpinner();
-    setTitleText(Messages.thinking_completedTitle);
     setExpanded(false);
     unwrapBodyFromScroller();
   }
@@ -373,7 +379,8 @@ public class ThinkingBlock extends Composite {
     return s.substring(0, end);
   }
 
-  private void setTitleText(String text) {
+  /** Update the header title text. */
+  public void setTitle(String text) {
     if (titleLabel == null || titleLabel.isDisposed()) {
       return;
     }
